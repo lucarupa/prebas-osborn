@@ -1,8 +1,4 @@
-CREATE USER defaultuser WITH PASSWORD 'defaultuser123';
-
-CREATE DATABASE asset_db
-    WITH
-    OWNER = defaultuser;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO defaultuser;
 
 CREATE TABLE agencies (
     id          VARCHAR(36)  PRIMARY KEY,
@@ -84,6 +80,8 @@ CREATE TABLE comments (
 
 CREATE INDEX idx_comments_asset_version_id ON comments(asset_version_id);
 CREATE INDEX idx_comments_author_id        ON comments(author_id);
+
+\c asset_db
 
 -- =====================
 -- AGENCIES

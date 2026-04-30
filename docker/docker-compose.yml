@@ -9,15 +9,22 @@ services:
     ports:
       - "5434:5432"
     volumes:
+      - ../postgres_data:/var/lib/postgresql/data
       - ../sql/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U defaultuser -d asset_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   api:
     build:
       context: ..
-      dockerfile: ../Dockerfile
+      dockerfile: Dockerfile
     env_file:
       - ../.env
     ports:
       - "3000:8000"
     depends_on:
-      - db
+     db:
+      condition: service_healthy
