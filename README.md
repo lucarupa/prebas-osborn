@@ -11,7 +11,7 @@ API REST para gestionar el ciclo de vida de piezas creativas (imágenes, videos,
 | Lenguaje      | Python 3.11+                                      |
 | Framework     | FastAPI                                           |
 | Base de datos | SQLite (desarrollo) / PostgreSQL (producción)     |
-| ORM           | SQLAlchemy 2.0                                    |
+| ORM           | SQLAlchemy 2.0 async (`asyncpg`)                  |
 | Validación    | Pydantic v2                                       |
 | Servidor      | Uvicorn                                           |
 
@@ -21,9 +21,62 @@ API REST para gestionar el ciclo de vida de piezas creativas (imágenes, videos,
 
 ```bash
 pip install -r requirements.txt
+
+# Configurar variable de entorno en .env
+DATABASE_URL=sqlite+aiosqlite:///./dev.db
+
 uvicorn main:app --reload
 # Docs: http://localhost:8000/docs
 ```
+
+Para PostgreSQL, ejecutar `sql/seed.sql` primero para crear las tablas y cargar datos de prueba.
+
+---
+
+## Estructura del proyecto
+
+```
+main.py                  # Entry point: app, exception handlers, routers
+app/
+  model/__init__.py      # Modelos SQLAlchemy (Agency, Project, User, Asset, AssetVersion, Approval, Comment)
+  schemas.py             # Schemas Pydantic (request/response)
+  routers/
+    assets.py            # Endpoints de assets
+  database/
+    connection.py        # Engine y SessionLocal (async)
+    deps.py              # Dependencia get_db para FastAPI
+sql/
+  seed.sql               # DDL + datos de prueba para PostgreSQL
+```
+
+---
+
+## Endpoints implementados
+
+| Método | Ruta           | Descripción                                             |
+|--------|----------------|---------------------------------------------------------|
+| GET    | `/health`      | Health check                                            |
+| POST   | `/assets`      | Crea un asset + primera versión (`pending_review`)      |
+| GET    | `/assets/{id}` | Retorna el asset con todas sus versiones y aprobaciones |
+
+### POST /assets — body
+
+```json
+{
+  "title": "Banner Principal",
+  "description": "...",
+  "asset_type": "image",
+  "project_id": "uuid",
+  "agency_id": "uuid",
+  "created_by": "uuid",
+  "file_url": "https://...",
+  "file_name": "banner.jpg",
+  "file_size_bytes": 2048000,
+  "version_notes": "Primera versión"
+}
+```
+
+`asset_type` acepta: `image`, `video`, `pdf`.
 
 ---
 
