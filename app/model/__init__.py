@@ -46,7 +46,7 @@ class Project(Base):
     status      = Column(String(50), default="active")
     created_at  = Column(DateTime, server_default=func.now(), nullable=False)
 
-    agency = relationship("Agency", back_populates="projects", cascade="all, delete-orphan")
+    agency = relationship("Agency", back_populates="projects")
     assets = relationship("Asset", back_populates="project", cascade="all, delete-orphan")
 
 
@@ -60,7 +60,7 @@ class User(Base):
     agency_id  = Column(String(36), ForeignKey("agencies.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False)
 
-    agency           = relationship("Agency", back_populates="users", cascade="all, delete-orphan")
+    agency           = relationship("Agency", back_populates="users")
     assets_created   = relationship("Asset", back_populates="creator", cascade="all, delete-orphan")
     versions_created = relationship("AssetVersion", back_populates="creator", cascade="all, delete-orphan")
     approvals_given  = relationship("Approval", back_populates="reviewer", cascade="all, delete-orphan")
@@ -82,9 +82,9 @@ class Asset(Base):
     created_at      = Column(DateTime, server_default=func.now(), nullable=False)
     updated_at      = Column(DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
-    project  = relationship("Project", back_populates="assets", cascade="all, delete-orphan")
-    agency   = relationship("Agency", back_populates="assets", cascade="all, delete-orphan")
-    creator  = relationship("User", back_populates="assets_created", cascade="all, delete-orphan")
+    project  = relationship("Project", back_populates="assets")
+    agency   = relationship("Agency", back_populates="assets")
+    creator  = relationship("User", back_populates="assets_created")
     versions = relationship("AssetVersion", back_populates="asset", order_by="AssetVersion.version_number", cascade="all, delete-orphan")
 
 
@@ -105,8 +105,8 @@ class AssetVersion(Base):
         UniqueConstraint("asset_id", "version_number", name="uq_asset_version"),
     )
 
-    asset     = relationship("Asset", back_populates="versions", cascade="all, delete-orphan")
-    creator   = relationship("User", back_populates="versions_created", cascade="all, delete-orphan")
+    asset     = relationship("Asset", back_populates="versions")
+    creator   = relationship("User", back_populates="versions_created")
     approvals = relationship("Approval", back_populates="asset_version", cascade="all, delete-orphan")
     comments  = relationship("Comment", back_populates="asset_version", cascade="all, delete-orphan")
 
@@ -121,8 +121,8 @@ class Approval(Base):
     comment          = Column(Text)
     created_at       = Column(DateTime, server_default=func.now(), nullable=False)
 
-    asset_version = relationship("AssetVersion", back_populates="approvals", cascade="all, delete-orphan")
-    reviewer      = relationship("User", back_populates="approvals_given", cascade="all, delete-orphan")
+    asset_version = relationship("AssetVersion", back_populates="approvals")
+    reviewer      = relationship("User", back_populates="approvals_given")
 
 
 class Comment(Base):
@@ -134,5 +134,5 @@ class Comment(Base):
     body             = Column(Text, nullable=False)
     created_at       = Column(DateTime, server_default=func.now(), nullable=False)
 
-    asset_version = relationship("AssetVersion", back_populates="comments", cascade="all, delete-orphan")
-    author        = relationship("User", back_populates="comments", cascade="all, delete-orphan")
+    asset_version = relationship("AssetVersion", back_populates="comments")
+    author        = relationship("User", back_populates="comments")
