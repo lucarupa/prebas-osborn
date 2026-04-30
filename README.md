@@ -28,8 +28,8 @@ sequenceDiagram
     participant S3 as Storage (S3/GCS)
 
     F->>API: POST /assets/upload-url<br/>{filename, asset_type, file_size}
-    API->>S3: genera presigned URL
-    S3-->>API: presigned_url (expira en 15min)
+    F->>S3: genera presigned URL
+    S3-->>F: presigned_url (expira en 15min)
     API->>DB: crea asset en estado "uploading"
     API-->>F: 201 { asset_id, upload_url }
 
