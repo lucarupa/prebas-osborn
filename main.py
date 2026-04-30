@@ -6,6 +6,7 @@ from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.database.connection import engine, Base
+from app.routers import assets as assets_router
 
 
 @asynccontextmanager
@@ -84,6 +85,12 @@ async def generic_exception_handler(request: Request, exc: Exception):
         message="An unexpected error occurred.",
         details=[str(exc)],
     )
+
+# ---------------------------------------------------------------------------
+# Routers
+# ---------------------------------------------------------------------------
+
+app.include_router(assets_router.router)
 
 # ---------------------------------------------------------------------------
 # Health check
