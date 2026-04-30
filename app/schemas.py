@@ -148,6 +148,24 @@ class CreateAssetResponse(BaseModel):
     data: CreateAssetData
 
 
+class CreateVersionRequest(BaseModel):
+    created_by: str = Field(..., min_length=1)
+    file_url: str = Field(..., min_length=1, max_length=500)
+    file_name: str = Field(..., min_length=1, max_length=255)
+    file_size_bytes: Optional[int] = Field(None, ge=0)
+    notes: Optional[str] = None
+
+
+class CreateVersionData(BaseModel):
+    asset: AssetOut
+    version: AssetVersionOut
+
+
+class CreateVersionResponse(BaseModel):
+    success: bool = True
+    data: CreateVersionData
+
+
 class AssetDetailData(BaseModel):
     asset: AssetOut
     versions: List[AssetVersionOut]
