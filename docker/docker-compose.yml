@@ -1,0 +1,23 @@
+
+
+services:
+  db:
+    image: postgres:16.3-alpine
+    restart: always
+    env_file:
+      - .env-postgres
+    ports:
+      - "5434:5432"
+    volumes:
+      - ../sql/seed.sql:/docker-entrypoint-initdb.d/seed.sql
+
+  api:
+    build:
+      context: ..
+      dockerfile: ../Dockerfile
+    env_file:
+      - ../.env
+    ports:
+      - "3000:8000"
+    depends_on:
+      - db
