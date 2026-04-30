@@ -19,17 +19,28 @@ API REST para gestionar el ciclo de vida de piezas creativas (imágenes, videos,
 
 ## Correr localmente
 
+### 1. Crear y activar entorno virtual
+
 ```bash
-pip install -r requirements.txt
-
-# Configurar variable de entorno en .env
-DATABASE_URL=sqlite+aiosqlite:///./dev.db
-
-uvicorn main:app --reload
-# Docs: http://localhost:8000/docs
+python -m venv venv && source venv/bin/activate
 ```
 
-Para PostgreSQL, ejecutar `sql/seed.sql` primero para crear las tablas y cargar datos de prueba.
+### 2. Instalar dependencias
+
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Iniciar el servidor
+
+```bash
+fastapi dev
+```
+
+Para PostgreSQL, ejecutar `sql/seed.sql` para cargar datos de prueba.
+
+La API queda disponible en `http://localhost:8000`.
+Documentación interactiva: `http://localhost:8000/docs`
 
 ---
 
@@ -106,7 +117,7 @@ approved        ──[admin archiva]────────────►  ar
 
 ---
 
-## Flujo de subida de archivo
+## Flujo de approved de archivo
 
 ```mermaid
 sequenceDiagram
@@ -114,30 +125,42 @@ sequenceDiagram
     participant API as Backend API
     participant DB as Base de datos
     participant S3 as Storage (S3/GCS)
+    participant C as CloudFront
 
-    F->>API: POST /assets/upload-url {filename, asset_type, file_size}
-    API->>S3: genera presigned URL
-    S3-->>API: presigned_url (expira en 15 min)
-    API->>DB: crea asset en estado "uploading"
-    API-->>F: 201 { asset_id, upload_url }
-
-    F->>S3: PUT file (directo, sin pasar por API)
-    S3-->>F: 200 OK
-
-    F->>API: PATCH /assets/{id}/confirm
-    API->>DB: status "uploading" → "pending_review"
-    API-->>F: 200 { asset }
-
-    Note over F,S3: Si el PUT falla, el asset queda en "uploading" y se puede reintentar
+    F->>API: PUT /assets
+    API ->> DB: Update info
+    API ->> S3: Mueve el archivo a carpeta publica
+    S3 ->> C: Expone con cache el archivo
+    API -->> F: 200
 ```
 
 ---
 
-## Supuestos de implementación
+## Documentación adicional
 
-1. **Sin autenticación** — el `user_id` se recibe en el cuerpo del request. En producción vendría del JWT/sesión.
-2. **Almacenamiento simulado** — `file_url` se guarda como string. No hay integración real con S3/GCS.
-3. **Un solo aprobador es suficiente** — la primera decisión registrada determina el estado del asset. El flujo multi-firma queda para una fase posterior.
-4. **Sin notificaciones** — ningún evento (subida, aprobación, comentario) dispara emails ni notificaciones en sistema.
-5. **Un proyecto pertenece a una sola agencia** — la relación `projects.agency_id` es única e inmutable.
-6. **Versionado lineal** — no hay branches ni merges de versiones (1 → 2 → 3 → …).
+- [Análisis de requerimientos](docs/analisis.md) — Preguntas al cliente, reglas de negocio y supuestos.
+- [Casos de uso implementado por IA](docs/cu-02.md)
+- [Diagrama ERD](sql/erd.md) - Modelo entida relacion
+
+
+### ¿Qué mejorarías?
+
+- **Autenticación JWT**: reemplazar el `user_id` en el body por un token que el servidor valida y del cual extrae la identidad del usuario.
+- **Subida real de archivos**: integrar con S3, GCS o Azure Blob Storage en lugar de guardar solo una URL libre.
+- **Flujo de aprobación multi-firma configurable**: permitir que cada agencia defina cuántos aprobadores se necesitan (quórum) y si son secuenciales o paralelos.
+- **Paginación en listados**: agregar parámetros `page` / `page_size` a todos los endpoints de consulta para soportar grandes volúmenes.
+- **Soft-delete**: en lugar de eliminar registros, marcarlos como inactivos para mantener trazabilidad completa.
+- **Migraciones con Alembic**: sustituir `create_all` por migraciones versionadas para poder evolucionar el esquema en producción sin perder datos.
+
+### ¿Qué riesgo técnico identificas?
+
+- **El campo `file_url` es una cadena libre sin validación**: cualquiera puede introducir una URL arbitraria. Sin integración real con el proveedor de storage no hay garantía de que el archivo exista, sea accesible o pertenezca al tenant correcto.
+- **Sin autenticación, cualquiera puede actuar en nombre de otro usuario**: al enviar el `user_id` en el body, no hay mecanismo que verifique que quien hace la petición es realmente ese usuario. Un actor malicioso podría aprobar piezas en nombre de otro.
+- **Sin control de concurrencia en el versionado**: si dos usuarios suben una versión al mismo tiempo, podrían generarse dos versiones con el mismo `version_number` antes de que el constraint UNIQUE las rechace.
+
+### ¿Qué información sería imprescindible para producción?
+
+- **Volumen esperado de assets y usuarios concurrentes**: determina la elección de base de datos, el tamaño del pool de conexiones y la arquitectura de deployment.
+- **Proveedor de almacenamiento de archivos**: S3, GCS o Azure Blob. Define la integración, el modelo de permisos (URLs firmadas, acceso público/privado) y los costos de egress.
+- **Requisitos de retención de datos y backups**: ¿cuánto tiempo deben conservarse las versiones y aprobaciones? ¿Hay obligaciones legales o contractuales (GDPR, retención fiscal)?
+- **Flujo exacto de aprobación**: ¿múltiples aprobadores? ¿secuencial o paralelo? ¿Hay un quórum mínimo? Esta información es crítica para el modelo de datos y la lógica de negocio.
