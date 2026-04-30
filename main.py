@@ -4,7 +4,6 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import DeclarativeBase
 
 from app.database.connection import engine, Base
 
