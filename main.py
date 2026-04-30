@@ -4,11 +4,15 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import HTTPException, RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.orm import DeclarativeBase
+
+from app.database.connection import engine, Base
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables and seed initial data on startup
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
 
 
